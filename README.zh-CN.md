@@ -43,7 +43,6 @@ Drama 3 加载模型和 codec 后实测占用约 72–74 GiB，因此这套配�
 
 - 操作系统：Ubuntu 22.04
 - GPU：单张 NVIDIA A800-SXM4-80GB，总显存 81,920 MiB
-- 默认设备：GPU 3
 - NVIDIA 驱动：590.48.01
 - Python：3.10.12
 - PyTorch：2.8.0+cu128
