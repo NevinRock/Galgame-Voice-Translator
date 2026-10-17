@@ -1,0 +1,13 @@
+{
+  "characters": {
+    "stella": {
+      "audio": "../references/stella_reference.wav",
+      "text": "ここに参照音声の正確な日本語を書きます。"
+    },
+    "jude": {
+      "audio": "../references/jude_reference.wav",
+      "text": "ここに参照音声の正確な日本語を書きます。"
+    }
+  }
+}
+
