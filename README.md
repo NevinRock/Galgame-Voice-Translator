@@ -1,43 +1,88 @@
 # Galgame Voice Translator
 
-将 SiglusEngine 视觉小说的日语语音和中文脚本按 KOE 编号对齐，再用
-[Fish Speech](https://github.com/fishaudio/fish-speech) Drama 3 生成中文普通话配音。
-流水线优先保留角色音色和情绪，并以原日语句子的时长为约束恢复接近原作的节奏。
+This project aligns Japanese voice clips and a translated script from a
+SiglusEngine visual novel by global KOE number, then uses
+[Fish Speech](https://github.com/fishaudio/fish-speech) Drama 3 to generate
+Mandarin Chinese dialogue. The pipeline prioritizes character identity and
+delivery while using the duration of each original Japanese line to preserve
+the pacing of the game.
 
-> 仓库不包含任何游戏脚本、原声、生成音频或模型权重。请只处理你有权使用的资源。
+This repository does not contain game scripts, original voice assets,
+generated audio, or model weights. Only process material that you are legally
+allowed to use.
 
-## 工作流程
+## Pipeline
 
-1. 用 SiglusSceneScriptUtility 在本地解包原日语语音，导出原版与汉化版的 KOE 清单。
-2. 按全局 KOE 编号合并日文、中文、角色和音频路径。
-3. 如果没有成品中文脚本，可通过 OpenAI-compatible API 翻译。
-4. 在 GPU 服务器上用角色参考音频生成多个候选，择取时长最接近原句的一个。
-5. 只接受偏差不超过 `max(0.25 秒, 15%)` 的候选，最后用 `atempo` 对齐精确时长。
-6. 将已通过检查的 WAV 编码回 Ogg Vorbis，重建 OVK 包。
+1. Extract the original Japanese voice clips and export KOE manifests from the
+   original and translated scripts with SiglusSceneScriptUtility.
+2. Join Japanese text, Chinese text, speaker metadata, and audio paths by the
+   global KOE number.
+3. If no translated script is available, optionally translate the dialogue
+   through an OpenAI-compatible API.
+4. Generate several Mandarin candidates with one fixed character reference.
+5. Accept only a candidate whose duration differs by no more than
+   `max(0.25 seconds, 15%)` from the Japanese line, then align it exactly with
+   FFmpeg `atempo`.
+6. Encode accepted WAV files as Ogg Vorbis and rebuild the OVK archives.
 
-自适应模式不把当前日语原句直接作为 TTS 参考。这是有意的：在跨语言的短句上，
-精确原句容易压过中文目标，导致模型反复说日语。原句仅用来确定节奏长度，
-固定的较长角色样本负责音色和说话风格。
+Adaptive synthesis deliberately does not give the exact Japanese line to the
+TTS model as an audio reference. On short cross-language lines, that reference
+can overpower the Mandarin target and make the model repeat Japanese speech.
+The original line is used only as a timing target. A longer, fixed character
+sample provides the voice identity and speaking style.
 
-## 本地安装
+## Hardware requirements
 
-需要 Python 3.10+、Git、FFmpeg/​ffprobe。
+The official Fish Speech installation guide lists the following inference
+requirements:
+
+- Drama 3: one NVIDIA GPU with at least 48 GB of VRAM in FP8 mode. CPU, Apple
+  MPS, and AMD ROCm inference are not supported for Drama 3.
+- S2-Pro: at least 24 GB of VRAM; CPU inference is also supported.
+- Linux or WSL.
+
+See the
+[official Fish Speech installation guide](https://github.com/fishaudio/fish-speech/blob/main/docs/en/install.md)
+for the current compatibility matrix.
+
+The 48 GB figure applies to the FP8 path. With the pinned Drama 3 build on the
+A800 environment below, the API process used approximately 72-74 GiB after
+loading the model and codec. An 80 GB GPU is therefore recommended for this
+exact configuration. The provided scripts use one GPU only and default to
+GPU 3.
+
+## Tested environment
+
+- Operating system: Ubuntu 22.04
+- GPU: one NVIDIA A800-SXM4-80GB, 81,920 MiB total VRAM
+- Selected device: GPU 3
+- NVIDIA driver: 590.48.01
+- Python: 3.10.12
+- PyTorch: 2.8.0+cu128
+- CUDA runtime used by PyTorch: 12.8
+- FFmpeg: 4.4.2
+- Fish Speech commit: `541566932abbaebcb0a40e562a1f846738383f38`
+- SiglusSceneScriptUtility commit: `85700715aed8695a95183bb973f981a61ae9d9c7`
+
+## Local installation
+
+Python 3.10 or newer, Git, FFmpeg, and ffprobe are required.
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e .
 
-# 在本地获取固定版本的第三方源码，不会下载模型。
+# Fetch pinned third-party source code locally. This does not download models.
 bash scripts/bootstrap_sources.sh
 ```
 
-Fish Speech 固定在 `541566932abbaebcb0a40e562a1f846738383f38`，
-SiglusSceneScriptUtility 固定在 `85700715aed8695a95183bb973f981a61ae9d9c7`。
+Third-party repositories, virtual environments, model weights, game data, and
+generated files are excluded by `.gitignore` and are not committed.
 
-## 提取与对齐
+## Extracting and aligning a SiglusEngine game
 
-以《終のステラ》的目录布局为例：
+The following example uses the directory layout of *Tsui no Stella*:
 
 ```bash
 PYTHONPATH=tools/SiglusSceneScriptUtility/src python3 -m siglus_ssu \
@@ -58,43 +103,51 @@ galgame-voice import-siglus \
   --characters work/tsui_no_stella/job/characters.json
 ```
 
-`config/` 中有通用的清单、角色参考和术语表格式。
+The `config/` directory contains generic examples for line manifests,
+character references, and translation glossaries.
 
-## A800 部署与三卡生成
+## Single-GPU A800 deployment
 
-默认服务器路径是 `/ssd/BNW/Galgame_voice`。代码和已提取语音分开上传，
-游戏本体永远不会被同步。
+The default server path is `/ssd/BNW/Galgame_voice`. Source code and extracted
+voice jobs are uploaded separately. The game installation is never uploaded.
 
 ```bash
-# 本地
+# Run locally after scripts/bootstrap_sources.sh.
 bash scripts/upload_code_to_a800.sh
 bash scripts/upload_voice_jobs_to_a800.sh work/tsui_no_stella
 
-# a800：安装依赖，权重直接从中国大陆可用源下载到服务器
+# Run on the A800 server. Model weights are downloaded directly to the server.
 cd /ssd/BNW/Galgame_voice
 bash scripts/a800_install.sh
 bash scripts/a800_download_model.sh /ssd/BNW/Galgame_voice drama-3
 
-# 默认启动 GPU 0/3/7，端口 19081/8080/19082
-bash scripts/a800_start_apis.sh
+# Start one API process and one synthesis worker on GPU 3.
+bash scripts/a800_start_api.sh
 bash scripts/a800_start_batch.sh /ssd/BNW/Galgame_voice \
   tsui_no_stella generated_voice
 bash scripts/a800_batch_status.sh /ssd/BNW/Galgame_voice \
   tsui_no_stella generated_voice
 ```
 
-其他 GPU 可通过环境变量配置，两个列表必须等长：
+To use another single GPU or port, pass the same environment values to both
+start commands:
 
 ```bash
-FISH_GPUS="1 2" FISH_PORTS="18081 18082" bash scripts/a800_start_apis.sh
-FISH_GPUS="1 2" FISH_PORTS="18081 18082" bash scripts/a800_start_batch.sh
+FISH_GPU=0 FISH_PORT=18080 bash scripts/a800_start_api.sh
+FISH_GPU=0 FISH_PORT=18080 bash scripts/a800_start_batch.sh
 ```
 
-任务会按 worker 数量稳定分片，已生成文件会被跳过，因此中断后可直接重跑。
-每句的 seed、候选时长和选择结果记录在 `_results_worker_*.jsonl`；
-超过时长阈值的最优候选会进入 `.rejected/`，不会冒充成品。
+Only one API process and one synthesis worker are started. Existing output is
+skipped, so an interrupted job can be resumed with the same command. Each
+line's seeds, candidate durations, and selection result are recorded in
+`_results_worker_0.jsonl`. The closest candidate is stored in `.rejected/`
+instead of being published when it fails the duration gate.
 
-## 回包
+The model download script uses ModelScope by default for servers in mainland
+China. Hugging Face remains available through `HF_ENDPOINT`, which defaults to
+`https://hf-mirror.com` when selected.
+
+## Rebuilding OVK archives
 
 ```bash
 rsync -az -e "ssh -F $HOME/.ssh/config" \
@@ -107,13 +160,14 @@ bash scripts/repack_siglus_voice.sh \
   work/tsui_no_stella/repacked_koe
 ```
 
-回包脚本只替换已生成的 KOE 条目，并拒绝把输出指向原游戏 `koe/` 目录。
+The repacking script replaces only generated KOE entries and refuses to use
+the original game `koe/` directory as its output destination.
 
-## 验证
+## Validation
 
 ```bash
 python -m unittest discover -v
 bash -n scripts/*.sh
 ```
 
-完整的实验演进记录见 [CHANGELOG.md](CHANGELOG.md)。
+Development history is recorded in [CHANGELOG.md](CHANGELOG.md).

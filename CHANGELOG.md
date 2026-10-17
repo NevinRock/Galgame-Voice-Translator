@@ -9,7 +9,7 @@
   character reference, preventing short Mandarin lines from repeating Japanese audio.
 - Added deterministic multi-candidate generation, duration gating and final rhythm
   alignment against the original Japanese line.
-- Added resumable sharding and A800 helpers for parallel processing on GPUs 0, 3 and 7.
+- Added resumable processing and A800 helpers using one GPU by default.
 - Added safe OVK rebuilding that never writes into the original game directory.
 
 Generated audio, game files and model weights are intentionally excluded from releases.
