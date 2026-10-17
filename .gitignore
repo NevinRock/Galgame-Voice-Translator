@@ -1,0 +1,28 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+.pytest_cache/
+.venv/
+build/
+dist/
+
+# Third-party source trees are fetched at pinned revisions.
+fish-speech/
+tools/SiglusSceneScriptUtility/
+
+# Copyrighted game data, model weights and generated artifacts.
+終のステラ/
+work/
+jobs/
+logs/
+checkpoints/
+extracted_voice/
+generated_voice*/
+*.part
+*.wav
+*.ogg
+*.ovk
+*.pck
+*.chs
+
