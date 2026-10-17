@@ -1,0 +1,12 @@
+diff --git a/pyproject.toml b/pyproject.toml
+index fa6c77a..f460c5d 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -28,7 +28,6 @@ dependencies = [
+     "resampy>=0.4.3",
+     "einx[torch]==0.2.2",
+     "pydub",
+-    "pyaudio",
+     "modelscope==1.17.1",
+     "opencc-python-reimplemented==0.1.7",
+     "silero-vad",
