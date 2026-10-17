@@ -57,7 +57,6 @@ GPU 3.
 
 - Operating system: Ubuntu 22.04
 - GPU: one NVIDIA A800-SXM4-80GB, 81,920 MiB total VRAM
-- Selected device: GPU 3
 - NVIDIA driver: 590.48.01
 - Python: 3.10.12
 - PyTorch: 2.8.0+cu128
