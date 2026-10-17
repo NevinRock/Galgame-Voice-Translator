@@ -1,5 +1,7 @@
 # Galgame Voice Translator
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 This project aligns Japanese voice clips and a translated script from a
 SiglusEngine visual novel by global KOE number, then uses
 [Fish Speech](https://github.com/fishaudio/fish-speech) Drama 3 to generate
